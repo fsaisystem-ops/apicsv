@@ -1,30 +1,34 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import StreamingResponse
-import csv
 import io
 
 app = FastAPI()
+
+@app.get("/")
+def health():
+    return {"status": "ok"}
 
 @app.post("/fix-csv")
 async def fix_csv(file: UploadFile = File(...)):
     raw = await file.read()
 
-    # força leitura tolerante (CSV quebrado / encoding ruim)
-    text = raw.decode("latin1", errors="ignore")
+    text = raw.decode("latin1", errors="replace")
 
-    reader = csv.reader(io.StringIO(text), delimiter="|")
-    output = io.StringIO()
-    writer = csv.writer(output, delimiter="|", lineterminator="\n")
+    fixed_lines = []
+    for line in text.splitlines():
+        parts = line.split("|")
+        fixed_lines.append("|".join(parts[:51]))  # ajusta qtd colunas
 
-    for row in reader:
-        writer.writerow(row)
+    output = "\n".join(fixed_lines)
 
-    output.seek(0)
+    buffer = io.BytesIO()
+    buffer.write(output.encode("utf-8"))
+    buffer.seek(0)
 
     return StreamingResponse(
-        output,
+        buffer,
         media_type="text/csv",
         headers={
-            "Content-Disposition": f"attachment; filename={file.filename}"
+            "Content-Disposition": f'attachment; filename="fixed_{file.filename}"'
         }
     )
