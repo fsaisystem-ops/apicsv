@@ -1,38 +1,30 @@
 from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import Response
+from fastapi.responses import StreamingResponse
 import csv
 import io
 
 app = FastAPI()
 
-DELIM = "|"
-ENCODING_IN = "latin1"
-ENCODING_OUT = "utf-8"
-
 @app.post("/fix-csv")
 async def fix_csv(file: UploadFile = File(...)):
     raw = await file.read()
-    text = raw.decode(ENCODING_IN, errors="ignore")
 
-    reader = csv.reader(io.StringIO(text), delimiter=DELIM)
-    rows = list(reader)
+    # força leitura tolerante (CSV quebrado / encoding ruim)
+    text = raw.decode("latin1", errors="ignore")
 
-    cols = max(len(r) for r in rows)
+    reader = csv.reader(io.StringIO(text), delimiter="|")
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter="|", lineterminator="\n")
 
-    fixed = []
-    for r in rows:
-        if len(r) > cols:
-            r = r[:cols-1] + [' '.join(r[cols-1:])]
-        elif len(r) < cols:
-            r = r + [''] * (cols - len(r))
-        fixed.append(r)
+    for row in reader:
+        writer.writerow(row)
 
-    out = io.StringIO()
-    writer = csv.writer(out, delimiter=DELIM)
-    writer.writerows(fixed)
+    output.seek(0)
 
-    return Response(
-        content=out.getvalue().encode(ENCODING_OUT),
+    return StreamingResponse(
+        output,
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=fixed.csv"}
+        headers={
+            "Content-Disposition": f"attachment; filename={file.filename}"
+        }
     )
