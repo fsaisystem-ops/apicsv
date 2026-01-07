@@ -25,6 +25,7 @@ API em **FastAPI** desenvolvida para corrigir arquivos CSV exportados do banco *
 6. **Acesse a API** via navegador ou ferramentas como Postman:
    - Health check: `http://<seu_vps>:8000/`
    - Endpoint CSV: `POST http://<seu_vps>:8000/fix-csv`
+   - Endpoint Docs: 'http://<seu_vps>:8000/docs'
 
 ---
 
