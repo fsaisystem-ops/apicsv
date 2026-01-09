@@ -22,7 +22,6 @@ async def fix_csv(file: UploadFile = File(...)):
     text = text.replace("\r\n", "\n").replace("\r", "\n")
 
     #  REMOVE aspas — CSV NÃO usa quote 
-    # (isso resolve o erro do n8n definitivamente)
     text = text.replace('"', '')
 
     fixed_lines = []
